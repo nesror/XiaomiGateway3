@@ -79,6 +79,15 @@ DEVICES = [{
         [8, 1, 'backlight', 'switch'],
         [8, 2, 'smart', 'switch'],
     ]
+}, {
+    2717: ["Xiaomi", "Mesh Wall Triple Switch", "ISA-KG03HL"],
+    'params': [
+        [2, 1, 'left_switch', 'switch'],
+        [3, 1, 'middle_switch', 'switch'],
+        [4, 1, 'right_switch', 'switch'],
+        [6, 1, 'humidity', None],
+        [6, 7, 'temperature', None]
+    ]
 }]
 
 BLE_FINGERPRINT_ACTION = [
