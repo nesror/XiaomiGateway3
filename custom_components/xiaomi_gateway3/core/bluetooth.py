@@ -85,19 +85,19 @@ DEVICES = [{
         [2, 1, 'left_switch', 'switch'],
         [3, 1, 'middle_switch', 'switch'],
         [4, 1, 'right_switch', 'switch'],
-        [6, 1, 'humidity', 'humidity'],
-        [6, 7, 'temperature', 'temperature']
+        [6, 1, 'humidity', 'sensor'],
+        [6, 7, 'temperature', 'sensor'],
     ]
 }, {  
     1497: ["Xiaomi", "Kettle", "YUNMI-V9"],
     'params': [
-        [1, 2, 'warm_time', 'idle_time']
+        [1, 2, 'warm_time', 'sensor']
     ]
 }, {  
     1161: ["Xiaomi", "Toothbrush", "SOOCARE-M1S"],
     417: ["Xiaomi", "Toothbrush", "SOOCARE-M1"],
     'params': [
-        [1, 2, 'battery_level', 'battery']
+        [1, 2, 'battery_level', 'sensor']
     ]
 }]
 
