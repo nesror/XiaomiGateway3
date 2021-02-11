@@ -718,7 +718,7 @@ class Gateway3(Thread, GatewayV, GatewayMesh, GatewayStats):
             topic = msg.topic
 
             if 'mqtt' in self._debug:
-                self.debug(f"[MQ] {topic} {msg.payload.decode()}")
+                _LOGGER.debug(f"{self.host} | MQTT | {topic} {msg.payload}")
 
             if topic == 'zigbee/send':
                 payload = json.loads(msg.payload)
@@ -851,7 +851,7 @@ class Gateway3(Thread, GatewayV, GatewayMesh, GatewayStats):
         elif data['cmd'] == 'report':
             pkey = 'params' if 'params' in data else 'mi_spec'
         elif data['cmd'] in ('write_rsp', 'read_rsp'):
-            pkey = 'results'
+            pkey = 'results' if 'results' in data else 'mi_spec'
         elif data['cmd'] == 'write_ack':
             return
         else:
@@ -860,8 +860,8 @@ class Gateway3(Thread, GatewayV, GatewayMesh, GatewayStats):
 
         did = data['did']
 
-        # skip without callback
-        if did not in self.updates:
+        # skip without callback and without data
+        if did not in self.updates or pkey not in data:
             return
 
         ts = time.time()
@@ -1073,7 +1073,9 @@ class Gateway3(Thread, GatewayV, GatewayMesh, GatewayStats):
                 if k == 'switch':
                     v = bool(v)
                 k = next(p[0] for p in device['mi_spec'] if p[2] == k)
-                params.append({'siid': k[0], 'piid': k[1], 'value': v})
+                params.append({
+                    'siid': int(k[0]), 'piid': int(k[2]), 'value': v
+                })
 
             payload['mi_spec'] = params
         else:
