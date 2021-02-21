@@ -92,13 +92,18 @@ DEVICES = [{
 }, {  
     1497: ["Xiaomi", "Kettle", "YUNMI-V9"],
     'params': [
-        [1, 2, 'warm_time', 'sensor']
+        [2, 1, 'warm_time', 'sensor']
     ]
 }, {  
     1161: ["Xiaomi", "Toothbrush", "SOOCARE-M1S"],
     417: ["Xiaomi", "Toothbrush", "SOOCARE-M1"],
     'params': [
-        [1, 2, 'battery_level', 'sensor']
+        [2, 1, 'battery_level', 'sensor']
+    ]
+}, {
+    3083: ["Xiaomi", "Mesh Wall Controller", "ZIMI-ZNCZ01"],
+    'params': [
+        [2, 1, 'switch', 'switch'],
     ]
 }]
 
