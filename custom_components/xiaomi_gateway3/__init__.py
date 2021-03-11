@@ -1,3 +1,4 @@
+import asyncio
 import logging
 
 import voluptuous as vol
@@ -7,6 +8,7 @@ from homeassistant.core import HomeAssistant, Event
 from homeassistant.helpers import config_validation as cv
 from homeassistant.helpers.aiohttp_client import async_create_clientsession
 from homeassistant.helpers.entity import Entity
+from homeassistant.helpers.device_registry import CONNECTION_NETWORK_MAC
 from homeassistant.helpers.entity_registry import EntityRegistry
 from homeassistant.helpers.storage import Store
 
@@ -72,21 +74,15 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry):
 
     await _setup_logger(hass)
 
-    config = hass.data[DOMAIN]['config']
-
-    hass.data[DOMAIN][entry.entry_id] = \
-        gw = Gateway3(**entry.options, config=config)
-
     # add options handler
     if not entry.update_listeners:
         entry.add_update_listener(async_update_options)
 
-    # init setup for each supported domains
-    for domain in DOMAINS:
-        hass.async_create_task(hass.config_entries.async_forward_entry_setup(
-            entry, domain))
+    config = hass.data[DOMAIN]['config']
+    hass.data[DOMAIN][entry.entry_id] = \
+        Gateway3(**entry.options, config=config)
 
-    gw.start()
+    hass.async_create_task(_setup_domains(hass, entry))
 
     return True
 
@@ -120,6 +116,17 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry):
         await hass.config_entries.async_forward_entry_unload(entry, domain)
         for domain in DOMAINS
     ])
+
+
+async def _setup_domains(hass: HomeAssistant, entry: ConfigEntry):
+    # init setup for each supported domains
+    await asyncio.gather(*[
+        hass.config_entries.async_forward_entry_setup(entry, domain)
+        for domain in DOMAINS
+    ])
+
+    gw: Gateway3 = hass.data[DOMAIN][entry.entry_id]
+    gw.start()
 
 
 async def _setup_micloud_entry(hass: HomeAssistant, config_entry):
@@ -301,6 +308,7 @@ class Gateway3Device(Entity):
         type_ = self.device['type']
         if type_ == 'gateway':
             return {
+                'connections': {(CONNECTION_NETWORK_MAC, self.device['wlan_mac'])},
                 'identifiers': {(DOMAIN, self.device['mac'])},
                 'manufacturer': self.device['device_manufacturer'],
                 'model': self.device['device_model'],

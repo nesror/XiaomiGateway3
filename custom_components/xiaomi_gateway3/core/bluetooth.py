@@ -5,7 +5,9 @@ from typing import Optional
 # params: [siid, piid, hass attr name, hass domain]
 DEVICES = [{
     # BLE
+    131: ["Xiaomi", "Kettle", "YM-K1501"],
     152: ["Xiaomi", "Flower Care", "HHCCJCY01"],
+    417: ["Xiaomi", "Toothbrush", "SOOCARE-M1"],
     426: ["Xiaomi", "TH Sensor", "LYWSDCGQ/01ZM"],
     794: ["Xiaomi", "Door Lock", "MJZNMS02LM"],
     839: ["Xiaomi", "Qingping TH Sensor", "CGG1"],
@@ -13,6 +15,7 @@ DEVICES = [{
     982: ["Xiaomi", "Qingping Door Sensor", "CGH1"],
     1034: ["Xiaomi", "Mosquito Repellent", "WX08ZM"],
     1115: ["Xiaomi", "TH Clock", "LYWSD02MMC"],
+    1161: ["Xiaomi", "Toothbrush", "SOOCARE-M1S"],
     1249: ["Xiaomi", "Magic Cube", "XMMF01JQD"],
     1371: ["Xiaomi", "TH Sensor 2", "LYWSD03MMC"],
     1398: ["Xiaomi", "Alarm Clock", "CGD1"],
@@ -20,6 +23,7 @@ DEVICES = [{
     1695: ["Aqara", "Door Lock N200", "ZNMS17LM"],
     1747: ["Xiaomi", "ZenMeasure Clock", "MHO-C303"],
     1983: ["Yeelight", "Button S1", "YLAI003"],
+    1497: ["Xiaomi", "Kettle Pro", "YUNMI-V9"],
     2038: ["Xiaomi", "Night Light 2", "MJYD02YL-A"],  # 15,4103,4106,4119,4120
     2147: ["Xiaomi", "Water Leak Sensor", "SJWS01LM"],
     2443: ["Xiaomi", "Door Sensor 2", "MCCGQ02HL"],
@@ -28,6 +32,7 @@ DEVICES = [{
     2691: ["Xiaomi", "Qingping Motion Sensor", "CGPR1"],
     # logs: https://github.com/AlexxIT/XiaomiGateway3/issues/180
     2701: ["Xiaomi", "Motion Sensor 2", "RTCGQ02LM"],  # 15,4119,4120
+    2888: ["Xiaomi", "Qingping Temp & RH Monitor", "CGG1"],
 }, {
     # Mesh Light
     0: ["Xiaomi", "Mesh Group", "Mesh Group"],
@@ -51,6 +56,11 @@ DEVICES = [{
         [2, 1, 'left_switch', 'switch'],
         [3, 1, 'right_switch', 'switch'],
     ]
+}, {
+    1945: ["Xiaomi", "Mesh Wall Switch", "DHKG01ZM"],
+    'params': [
+        [2, 1, 'switch', 'switch']
+    ],
 }, {
     2007: ["Unknown", "Mesh Switch Controller"],
     'params': [
@@ -92,21 +102,11 @@ DEVICES = [{
         [6, 1, 'humidity', 'sensor'],
         [6, 7, 'temperature', 'sensor'],
     ]
-}, {  
-    1497: ["Xiaomi", "Kettle", "YUNMI-V9"],
-    'params': [
-        [2, 1, 'warm_time', 'sensor']
-    ]
-}, {  
-    1161: ["Xiaomi", "Toothbrush", "SOOCARE-M1S"],
-    417: ["Xiaomi", "Toothbrush", "SOOCARE-M1"],
-    'params': [
-        [2, 1, 'battery_level', 'sensor']
-    ]
 }, {
-    3083: ["Xiaomi", "Mesh Wall Controller", "ZIMI-ZNCZ01"],
+    3083: ["Xiaomi", "Mi Smart Electrical Outlet", "ZNCZ01ZM"],
     'params': [
-        [2, 1, 'switch', 'switch'],
+        [2, 1, 'outlet', 'switch'],
+        [4, 1, 'backlight', 'switch'],
     ]
 }]
 
@@ -169,16 +169,16 @@ BLE_LOCK_ERROR = {
 }
 
 ACTIONS = {
-    1249: ['right', 'left'],
-    1983: ['single', 'double', 'hold'],
-    2147: ['single'],
+    1249: {0: 'right', 1: 'left'},
+    1983: {0: 'single', 0x010000: 'double', 0x020000: 'hold'},
+    2147: {0: 'single'},
 }
 
 
 def get_ble_domain(param: str) -> Optional[str]:
     if param in (
             'sleep', 'lock', 'opening', 'water_leak', 'smoke', 'gas', 'light',
-            'contact', 'motion'):
+            'contact', 'motion', 'power'):
         return 'binary_sensor'
 
     elif param in (
@@ -199,10 +199,12 @@ def parse_xiaomi_ble(event: dict, pdid: int) -> Optional[dict]:
     length = len(data)
 
     if eid == 0x1001 and length == 3:  # 4097
-        if pdid in ACTIONS and data[0] < len(ACTIONS[pdid]):
-            return {'action': ACTIONS[pdid][data[0]]}
-        else:
-            return {'action': data[0]}
+        value = int.from_bytes(data, 'little')
+        return {
+            'action': ACTIONS[pdid][value]
+            if pdid in ACTIONS and value in ACTIONS[pdid]
+            else value
+        }
 
     elif eid == 0x1002 and length == 1:  # 4098
         # No sleep (0x00), falling asleep (0x01)
@@ -216,6 +218,10 @@ def parse_xiaomi_ble(event: dict, pdid: int) -> Optional[dict]:
         return {
             'temperature': int.from_bytes(data, 'little', signed=True) / 10.0
         }
+
+    elif eid == 0x1005 and length == 2:  # 4101
+        # Kettle, thanks https://github.com/custom-components/ble_monitor/
+        return {'power': data[0], 'temperature': data[1]}
 
     elif eid == 0x1006 and length == 2:  # 4102
         # Humidity percentage, ranging from 0-1000
